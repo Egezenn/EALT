@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ealt"
+dynamic = ["version"]
+description = "Ege's Audio Library Thing - Your offline music library with YouTube as its backend!"
+readme = "readme.md"
+requires-python = ">=3.14"
+dependencies = [
+    "mutagen>=1.47.0",
+    "requests>=2.32.5",
+    "ytmusicapi>=1.11.3",
+    "typer>=0.12",
+]
+
+[project.scripts]
+ealt = "ealt.__main__:cli"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.8",
+    "pytest>=9.0.1",
+    "pyinstaller>=6.11.1",
+    "setuptools_scm>=8.0",
+]
+
+[tool.setuptools_scm]
+version_file = "ealt/_version.py"
+
+[tool.ruff]
+line-length = 120
+[tool.black]
+line-length = 120
+
+[tool.setuptools.packages.find]
+include = ["ealt*"]

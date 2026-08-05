@@ -1,0 +1,20 @@
+.git
+.venv
+__pycache__
+
+# project files
+data
+downloads
+logs
+tests/test_downloads
+ealt/_version.py
+
+library.json
+config.json
+
+# misc
+build
+dist
+*.spec
+*.exe
+*.egg-info

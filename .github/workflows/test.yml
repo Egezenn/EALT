@@ -1,0 +1,72 @@
+name: Test EALT
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - ".github/**"
+      - "ealt/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/**"
+      - "ealt/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install ImageMagick
+        run: sudo apt-get install -y imagemagick
+
+      # - name: Setup Deno
+      #   uses: denoland/setup-deno@v1
+      #   with:
+      #     deno-version: v2.x
+
+      - name: Install dependencies
+        run: |
+          uv sync
+          uv tool install yt-dlp
+
+      - name: Lint with ruff
+        run: uv run ruff check
+
+      - name: Run tests
+        run: uv run pytest
+
+      # - name: Run test library
+      #   run: uv run ytmasc run --db tests/test_library.json --workers 5 -w tests/downloads
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: data/logs/
+          retention-days: 7

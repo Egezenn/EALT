@@ -1,0 +1,60 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "EALT: Run Test Library",
+      "type": "shell",
+      "icon": { "id": "play", "color": "terminal.ansiGreen" },
+      "command": "uv run ealt run -l tests/test_library.json -w tests/test_downloads -t 5",
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "EALT: Help (short)",
+      "type": "shell",
+      "icon": { "id": "play", "color": "terminal.ansiGreen" },
+      "command": "uv run ealt -h"
+    },
+    {
+      "label": "EALT: Download Audio",
+      "type": "shell",
+      "icon": { "id": "play", "color": "terminal.ansiGreen" },
+      "command": "uv run ealt download dBO47BPH_2I"
+    },
+    {
+      "label": "EALT: Convert Audio",
+      "type": "shell",
+      "icon": { "id": "play", "color": "terminal.ansiGreen" },
+      "command": "uv run ealt convert dBO47BPH_2I"
+    },
+    {
+      "label": "EALT: Tag Audio",
+      "type": "shell",
+      "icon": { "id": "play", "color": "terminal.ansiGreen" },
+      "command": "uv run ealt tag dBO47BPH_2I"
+    },
+    {
+      "label": "Install via uv",
+      "type": "shell",
+      "icon": { "id": "desktop-download", "color": "terminal.ansiBlue" },
+      "command": "uv tool install -e ."
+    },
+    {
+      "label": "Delete test downloads",
+      "type": "shell",
+      "icon": { "id": "trash", "color": "terminal.ansiRed" },
+      "command": "Remove-Item tests/test_downloads -Recurse -Force"
+    },
+    {
+      "label": "Delete cache & builds",
+      "type": "shell",
+      "icon": { "id": "trash", "color": "terminal.ansiYellow" },
+      "command": "Remove-Item -Recurse -Force .pytest_cache, build, dist, ealt.egg-info, ealt.spec -ErrorAction SilentlyContinue"
+    },
+    {
+      "label": "Build with PyInstaller",
+      "type": "shell",
+      "icon": { "id": "tools", "color": "terminal.ansiYellow" },
+      "command": "uv run pyinstaller --noconfirm --onefile --console --name ealt --icon=assets/icon.ico ealt.py"
+    }
+  ]
+}
