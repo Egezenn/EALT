@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import shutil
 import sys
 import threading
@@ -95,17 +96,34 @@ def setup_logging(verbosity: str = "INFO"):
     )
 
 
+def which(cmd: str) -> str | None:
+    """Find an executable in PATH or fall back to ~/.local/bin."""
+    path = shutil.which(cmd)
+    if path:
+        return path
+    local_bin = Path.home() / ".local" / "bin" / cmd
+    if local_bin.is_file() and os.access(local_bin, os.X_OK):
+        local_bin_dir = str(local_bin.parent)
+        path_env = os.environ.get("PATH", "")
+        paths = path_env.split(os.pathsep) if path_env else []
+        if local_bin_dir not in paths:
+            paths.append(local_bin_dir)
+            os.environ["PATH"] = os.pathsep.join(paths)
+        return str(local_bin)
+    return None
+
+
 def check_dependencies():
     """Check if required external dependencies are available."""
     missing = []
 
-    if not shutil.which("ffmpeg"):
+    if not which("ffmpeg"):
         missing.append("ffmpeg")
 
-    if not (shutil.which("magick") or shutil.which("convert")):
+    if not (which("magick") or which("convert")):
         missing.append("magick (or convert)")
 
-    if not shutil.which("yt-dlp"):
+    if not which("yt-dlp"):
         missing.append("yt-dlp")
 
     if missing:

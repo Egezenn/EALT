@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.title }}{% endblock %}
+
+{% block style %}
+  :root {
+    --bg: #fff;
+    --text: #000;
+    --border: #333;
+    --card-bg: #ccc;
+    --input-bg: #fff;
+    --button-bg: #eee;
+    --button-hover: #ddd;
+    --sidebar-bg: #fff;
+    --sidebar-text: #000;
+    --sidebar-item-hover: #eee;
+    --sidebar-item-active: #ddd;
+    --pagination-info: #333;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --border: #555;
+      --card-bg: #2d2d2d;
+      --input-bg: #222;
+      --button-bg: #2d2d2d;
+      --button-hover: #3d3d3d;
+      --sidebar-bg: #181818;
+      --sidebar-text: #e0e0e0;
+      --sidebar-item-hover: #2a2a2a;
+      --sidebar-item-active: #333;
+      --pagination-info: #b3b3b3;
+    }
+  }
+  body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+  .track-layout { display: flex; height: 100vh; overflow: hidden; }
+  
+  /* Sidebar */
+  .sidebar { width: 300px; flex-shrink: 0; background: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border); padding: 10px; box-sizing: border-box; }
+  .sidebar-search-container { margin-bottom: 8px; }
+  .sidebar-search { width: 100%; box-sizing: border-box; background: var(--input-bg); border: 1px solid var(--border); color: var(--sidebar-text); padding: 6px; font-size: 16px; }
+  .sidebar-list { flex: 1; overflow-y: auto; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 6px; border: 1px solid var(--border); margin-bottom: 6px; text-decoration: none; color: var(--sidebar-text); background: var(--sidebar-bg); }
+  .sidebar-item:hover { background: var(--sidebar-item-hover); }
+  .sidebar-item.active { background: var(--sidebar-item-active); font-weight: bold; border: 2px solid var(--text); }
+  .sidebar-img { width: 40px; height: 40px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; background: var(--card-bg); }
+  .sidebar-meta { min-width: 0; flex: 1; }
+  .sidebar-title { font-weight: bold; font-size: 14px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar-artist { font-size: 12px; color: var(--pagination-info); margin: 2px 0 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Sidebar Pagination */
+  .sidebar-pagination { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); margin-bottom: 10px; font-size: 14px; }
+  .sidebar-pagination-btn { text-decoration: none; color: var(--sidebar-text); border: 1px solid var(--border); padding: 2px 6px; background: var(--button-bg); }
+  .sidebar-pagination-btn:not(.disabled):hover { background: var(--button-hover); }
+  .sidebar-pagination-btn.disabled { color: #555; background: var(--sidebar-bg); border-color: var(--border); pointer-events: none; }
+  .sidebar-pagination-info { color: var(--pagination-info); }
+
+  /* Track Content */
+  .track-page { flex: 1; background-size: cover; background-position: center; height: 100vh; overflow-y: auto; display: flex; justify-content: center; }
+  .track-content { text-align: center; max-width: 720px; width: 100%; box-sizing: border-box;
+                   padding: 40px 20px; display: flex; flex-direction: column;
+                   color: #fff; background: rgba(0, 0, 0, 0.55); min-height: 100%; }
+  .track-content img { max-width: 300px; border: 1px solid var(--border); align-self: center; }
+  .track-content audio { display: block; margin: 12px auto; width: 100%; max-width: 500px; }
+  .track-page a { color: #ddd; }
+  .track-back { position: fixed; top: 16px; left: 316px; z-index: 10; font-size: 18px; }
+  .track-back a { color: #fff; background: rgba(0, 0, 0, 0.6); padding: 8px 16px; text-decoration: none; border: 1px solid var(--border); }
+  .lyrics { font-size: 22px; line-height: 1.9; flex: 1; overflow-y: auto; min-height: 0; }
+  .lyrics span { display: block; }
+  .lyrics .active { font-weight: bold; }
+{% endblock %}
+
+{% block content %}
+<div class="track-layout">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-search-container">
+      <input type="text" id="sidebar-search" class="sidebar-search" placeholder="Search (artist - title)">
+    </div>
+    
+    <div class="sidebar-pagination">
+      {% if has_prev %}
+        <a class="sidebar-pagination-btn" href="/track/{{ item.watch_id }}?spage={{ spage - 1 }}">&laquo; Prev</a>
+      {% else %}
+        <span class="sidebar-pagination-btn disabled">&laquo; Prev</span>
+      {% endif %}
+      <span class="sidebar-pagination-info">Page {{ spage }} of {{ total_pages }}</span>
+      {% if has_next %}
+        <a class="sidebar-pagination-btn" href="/track/{{ item.watch_id }}?spage={{ spage + 1 }}">Next &raquo;</a>
+      {% else %}
+        <span class="sidebar-pagination-btn disabled">Next &raquo;</span>
+      {% endif %}
+    </div>
+
+    <div class="sidebar-list">
+      {% for track in items %}
+        <a href="/track/{{ track.watch_id }}?spage={{ spage }}" class="sidebar-item {% if track.watch_id == item.watch_id %}active{% endif %}" data-artist="{{ track.artist }}" data-title="{{ track.title }}">
+          {% if track.cover %}
+            <img class="sidebar-img" loading="lazy" src="/cover/{{ track.watch_id }}" alt="cover">
+          {% else %}
+            <div class="sidebar-img"></div>
+          {% endif %}
+          <div class="sidebar-meta">
+            <div class="sidebar-title">{{ track.title }}</div>
+            <div class="sidebar-artist">{{ track.artist }}</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Track Page -->
+  <div class="track-page" style="{% if item.cover %}background-image: url('/cover/{{ item.watch_id }}');{% else %}background: #222;{% endif %}">
+    <div class="track-back"><a href="javascript:history.back()">Back</a></div>
+    <div class="track-content">
+      <h1>{{ item.artist }} - {{ item.title }}</h1>
+      
+      {% if item.cover %}
+        <img src="/cover/{{ item.watch_id }}">
+      {% endif %}
+      
+      {% if item.audio %}
+        <audio id="player" controls src="/audio/{{ item.watch_id }}"></audio>
+      {% endif %}
+      
+      <p><strong>Artist:</strong> {{ item.artist }}</p>
+      <p><strong>Title:</strong> {{ item.title }}</p>
+      <p><strong>Watch ID:</strong> {{ item.watch_id }}</p>
+      
+      {% if item.album %}
+        <p><strong>Album:</strong> {{ item.album }}</p>
+      {% endif %}
+      
+      {% if item.desc %}
+        <p><strong>Description:</strong> {{ item.desc }}</p>
+      {% endif %}
+
+      {% if lyrics_spans %}
+        <h2>Lyrics</h2>
+        <div class="lyrics" id="lyrics">
+          {% for span in lyrics_spans %}
+            {% if span.t is not none %}
+              <span data-t="{{ "%.2f"|format(span.t) }}">{{ span.content }}</span>
+            {% else %}
+              <span>{{ span.content }}</span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    // Client-side sidebar search functionality
+    const sidebarSearch = document.getElementById('sidebar-search');
+    const sidebarItems = Array.from(document.querySelectorAll('.sidebar-item'));
+    sidebarSearch.addEventListener('input', () => {
+      const q = sidebarSearch.value.toLowerCase().trim();
+      sidebarItems.forEach(item => {
+        const artist = item.dataset.artist.toLowerCase();
+        const title = item.dataset.title.toLowerCase();
+        const fullText = artist + ' - ' + title;
+        const matches = fullText.includes(q);
+        item.style.display = matches ? 'flex' : 'none';
+      });
+    });
+
+    {% if timed_lyrics %}
+    const player = document.getElementById('player');
+    const lines = Array.from(document.querySelectorAll('#lyrics span[data-t]'));
+    player.addEventListener('timeupdate', () => {
+      const t = player.currentTime;
+      let active = null;
+      for (const el of lines) {
+        if (parseFloat(el.dataset.t) <= t) active = el;
+      }
+      lines.forEach(el => el.classList.toggle('active', el === active));
+    });
+    {% endif %}
+  </script>
+{% endblock %}

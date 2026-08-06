@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Editor{% endblock %}
+
+{% block style %}
+  :root {
+    --bg: #fff;
+    --text: #000;
+    --border: #333;
+    --input-bg: #fff;
+    --button-bg: #eee;
+    --button-hover: #ddd;
+    --link-color: #0066cc;
+    --table-header: #eee;
+    --table-row-hover: #f2f2f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --border: #555;
+      --input-bg: #222;
+      --button-bg: #2d2d2d;
+      --button-hover: #3d3d3d;
+      --link-color: #8ab4f8;
+      --table-header: #2d2d2d;
+      --table-row-hover: #1a1a1a;
+    }
+  }
+  body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+  .page { max-width: 1100px; margin: 0 auto; height: 100vh; box-sizing: border-box; padding: 20px;
+          display: flex; flex-direction: column; overflow: hidden; }
+  .scroll { flex: 1; overflow-y: auto; min-height: 0; }
+  h1 { font-size: 28px; }
+  .nav { margin-bottom: 16px; font-size: 18px; }
+  a { color: var(--link-color); }
+  .nav a { margin-right: 16px; }
+  input, select, button { font-size: 16px; padding: 6px; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+  button { background: var(--button-bg); cursor: pointer; }
+  button:hover { background: var(--button-hover); }
+  form { margin-bottom: 12px; }
+  table { border-collapse: collapse; width: 100%; background: var(--bg); color: var(--text); }
+  th, td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+  th { cursor: pointer; background: var(--table-header); user-select: none; }
+  th.sort-asc::after { content: " ▲"; }
+  th.sort-desc::after { content: " ▼"; }
+  tbody tr:hover { background: var(--table-row-hover); }
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1>Editor</h1>
+  
+
+  {# Controls Form #}
+  <form method="get">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search">
+    <button type="submit">Go</button>
+  </form>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="sort-asc">Artist</th>
+          <th>Title</th>
+          <th>Album</th>
+          <th>Description</th>
+          <th>Watch ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>{{ item.artist }}</td>
+            <td><a href="/track/{{ item.watch_id }}">{{ item.title }}</a></td>
+            <td>{{ item.album or '' }}</td>
+            <td>{{ item.truncated_desc or '' }}</td>
+            <td>{{ item.watch_id }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5">No music found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+  function sortTable(th, forceDir) {
+    const tbody = th.closest('table').querySelector('tbody');
+    const idx = Array.from(th.parentNode.children).indexOf(th);
+    const asc = th.classList.contains('sort-asc');
+    document.querySelectorAll('th').forEach((h) => h.classList.remove('sort-asc', 'sort-desc'));
+    let dir;
+    if (forceDir !== undefined) {
+      dir = forceDir;
+      th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+    } else {
+      dir = asc ? -1 : 1;
+      th.classList.add(asc ? 'sort-desc' : 'sort-asc');
+    }
+    const rows = Array.from(tbody.rows).sort((a, b) =>
+      a.cells[idx].textContent.localeCompare(b.cells[idx].textContent, undefined, { numeric: true }) * dir
+    );
+    tbody.append(...rows);
+  }
+  document.querySelectorAll('th').forEach((th) => {
+    th.addEventListener('click', () => sortTable(th));
+  });
+  const activeHeader = document.querySelector('th.sort-asc, th.sort-desc');
+  if (activeHeader) {
+    sortTable(activeHeader, activeHeader.classList.contains('sort-asc') ? 1 : -1);
+  }
+  </script>
+{% endblock %}

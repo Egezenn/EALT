@@ -7,7 +7,6 @@ data
 downloads
 logs
 tests/test_downloads
-ealt/_version.py
 
 library.json
 config.json
@@ -17,4 +16,3 @@ build
 dist
 *.spec
 *.exe
-*.egg-info

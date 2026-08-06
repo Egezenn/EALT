@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Replace errors{% endblock %}
+
+{% block style %}
+  :root {
+    --bg: #fff;
+    --text: #000;
+    --border: #222;
+    --btn-bg: #eee;
+    --btn-hover: #ddd;
+    --muted: #555;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --border: #555;
+      --btn-bg: #2d2d2d;
+      --btn-hover: #3d3d3d;
+      --muted: #888;
+    }
+  }
+  body { font-family: sans-serif; font-size: 22px; max-width: 900px; margin: 40px auto; padding: 0 20px; background: var(--bg); color: var(--text); }
+  h1 { font-size: 44px; }
+  h2 { font-size: 34px; }
+  .card { border: 3px solid var(--border); padding: 24px; margin-bottom: 24px; }
+  .btn { display: inline-block; font-size: 22px; font-weight: bold; padding: 14px 28px; margin: 4px 8px 4px 0;
+         border: 3px solid var(--border); background: var(--btn-bg); color: var(--text); text-decoration: none; cursor: pointer; }
+  .btn:hover { background: var(--btn-hover); }
+  .muted { color: var(--muted); }
+{% endblock %}
+
+{% block content %}
+  {% if cards %}
+    <h1>Replace errors ({{ cards|length }})</h1>
+    {% for card in cards %}
+      <div class="card">
+        <h2>{{ card.artist }} - {{ card.title }}</h2>
+        <p><strong>Watch ID:</strong> {{ card.watch_id }}</p>
+        <p><strong>Reason:</strong> {{ card.reason }}</p>
+        <a class="btn" href="/replace/{{ card.watch_id }}">Look for replacements</a>
+        <a class="btn" href="/ignore?watch_id={{ card.watch_id }}">Ignore</a>
+        <a class="btn" href="/delete?watch_id={{ card.watch_id }}">Delete entry</a>
+      </div>
+    {% endfor %}
+  {% else %}
+    <h1>Replace errors</h1>
+    <p>Nothing to replace!</p>
+  {% endif %}
+{% endblock %}

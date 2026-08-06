@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Preview{% endblock %}
+
+{% block style %}
+  :root {
+    --bg: #fff;
+    --text: #000;
+    --border: #222;
+    --btn-bg: #eee;
+    --btn-hover: #ddd;
+    --muted: #555;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --border: #555;
+      --btn-bg: #2d2d2d;
+      --btn-hover: #3d3d3d;
+      --muted: #888;
+    }
+  }
+  body { font-family: sans-serif; font-size: 22px; max-width: 900px; margin: 40px auto; padding: 0 20px; background: var(--bg); color: var(--text); }
+  h1 { font-size: 44px; }
+  .match { display: flex; align-items: center; gap: 16px; border: 3px solid var(--border); padding: 16px; margin-bottom: 16px; }
+  .btn { display: inline-block; font-size: 22px; font-weight: bold; padding: 14px 28px; margin: 4px 8px 4px 0;
+         border: 3px solid var(--border); background: var(--btn-bg); color: var(--text); text-decoration: none; cursor: pointer; }
+  .btn:hover { background: var(--btn-hover); }
+  .muted { color: var(--muted); }
+{% endblock %}
+
+{% block content %}
+  <h1>Preview</h1>
+  
+  <div class="match">
+    {% if thumb %}
+      <img src="/thumb?url={{ thumb|urlencode }}" width="120" height="120">
+    {% endif %}
+    <div>
+      <strong>{{ title }}</strong> — {{ artists }}
+      <br><span class="muted">{{ album }} · {{ duration }}</span>
+      <br><span class="muted">{{ video_id }}</span>
+    </div>
+  </div>
+
+  <audio autoplay controls src="/stream/{{ video_id }}"></audio>
+  <br><br>
+  <a class="btn" href="javascript:history.back()">Back</a>
+{% endblock %}

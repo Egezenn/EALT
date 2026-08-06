@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Explore{% endblock %}
+
+{% block style %}
+  :root {
+    --bg: #fff;
+    --text: #000;
+    --border: #333;
+    --card-bg: #ccc;
+    --input-bg: #fff;
+    --button-bg: #eee;
+    --button-hover: #ddd;
+    --link-color: #0066cc;
+    --tab-bg: #fff;
+    --table-header: #eee;
+    --table-row-hover: #f2f2f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --border: #555;
+      --card-bg: #2d2d2d;
+      --input-bg: #222;
+      --button-bg: #2d2d2d;
+      --button-hover: #3d3d3d;
+      --link-color: #8ab4f8;
+      --tab-bg: #1e1e1e;
+      --table-header: #2d2d2d;
+      --table-row-hover: #1a1a1a;
+    }
+  }
+  body { font-family: sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+  .page { max-width: 1100px; margin: 0 auto; height: 100vh; box-sizing: border-box; padding: 20px;
+          display: flex; flex-direction: column; overflow: hidden; }
+  .scroll { flex: 1; overflow-y: auto; min-height: 0; }
+  h1 { font-size: 28px; }
+  .tabs a { margin-right: 16px; font-size: 18px; color: var(--link-color); }
+  input, select, button { font-size: 16px; padding: 6px; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+  button { background: var(--button-bg); cursor: pointer; }
+  button:hover { background: var(--button-hover); }
+  form { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  details { border: 1px solid var(--border); margin-bottom: 8px; padding: 10px; }
+  summary { cursor: pointer; font-weight: bold; font-size: 18px; }
+  .tracks { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+  .track { border: 1px solid var(--border); padding: 8px; width: 150px; text-decoration: none; color: var(--text); }
+  .track img { width: 150px; height: 150px; object-fit: cover; display: block; }
+  .grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .cell { width: 200px; height: 200px; position: relative; overflow: hidden;
+          border: 1px solid var(--border); text-decoration: none; background: var(--card-bg); }
+  .cell img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cell .label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.7);
+                 color: #fff; padding: 4px 8px; }
+  table { border-collapse: collapse; width: 100%; background: var(--bg); color: var(--text); }
+  th, td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+  th { cursor: pointer; background: var(--table-header); user-select: none; }
+  th.sort-asc::after { content: " ▲"; }
+  th.sort-desc::after { content: " ▼"; }
+  tbody tr:hover { background: var(--table-row-hover); }
+  .pagination-inline { display: inline-flex; align-items: center; gap: 8px; margin-left: 16px; }
+  .pagination-btn { display: inline-block; font-size: 16px; padding: 6px; border: 1px solid var(--border); background: var(--button-bg); text-decoration: none; color: var(--text); cursor: pointer; }
+  .pagination-btn:hover { background: var(--button-hover); }
+  .pagination-info { font-size: 16px; }
+{% endblock %}
+
+{% block content %}
+<div class="page">
+  <h1>Explore</h1>
+  
+  {# Tabs macro/logic #}
+  <p class="tabs">
+    <a href="/?mode=artists{% if q %}&q={{ q|urlencode }}{% endif %}{% if sort != 'az' %}&sort={{ sort|urlencode }}{% endif %}">By Artist</a>
+    <a href="/?mode=title{% if q %}&q={{ q|urlencode }}{% endif %}{% if sort != 'az' %}&sort={{ sort|urlencode }}{% endif %}">By Title</a>
+  </p>
+
+  {# Controls Form #}
+  <form method="get">
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search">
+    {% if mode != 'table' %}
+      <select name="sort">
+        {% if mode == 'title' %}
+          <option value="az" {% if sort == 'az' %}selected{% endif %}>A-Z</option>
+          <option value="za" {% if sort == 'za' %}selected{% endif %}>Z-A</option>
+        {% else %}
+          <option value="az" {% if sort == 'az' %}selected{% endif %}>A-Z</option>
+          <option value="za" {% if sort == 'za' %}selected{% endif %}>Z-A</option>
+          <option value="most" {% if sort == 'most' %}selected{% endif %}>Most tracks</option>
+          <option value="least" {% if sort == 'least' %}selected{% endif %}>Least tracks</option>
+        {% endif %}
+      </select>
+    {% endif %}
+    <button type="submit">Go</button>
+    {% if mode == 'title' and total_pages is defined and total_pages > 1 %}
+      <span class="pagination-inline">
+        {% if has_prev %}
+          <a class="pagination-btn" href="/?mode=title&page={{ page - 1 }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if sort != 'az' %}&sort={{ sort|urlencode }}{% endif %}">Prev</a>
+        {% endif %}
+        <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+        {% if has_next %}
+          <a class="pagination-btn" href="/?mode=title&page={{ page + 1 }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if sort != 'az' %}&sort={{ sort|urlencode }}{% endif %}">Next</a>
+        {% endif %}
+      </span>
+    {% endif %}
+  </form>
+
+  <div class="scroll">
+    {% if mode == 'artists' %}
+      {% for artist, artist_tracks in sections %}
+        <details>
+          <summary>{{ artist }} ({{ artist_tracks|length }})</summary>
+          <div class="tracks">
+            {% for item in artist_tracks %}
+              <a class="track" href="/track/{{ item.watch_id }}">
+                {% if item.cover %}
+                  <img loading="lazy" src="/cover/{{ item.watch_id }}">
+                {% endif %}
+                {{ item.title }}
+              </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% else %}
+        <p>No music found.</p>
+      {% endfor %}
+
+    {% elif mode == 'title' %}
+      <div class="grid">
+        {% for item in items %}
+          <a class="cell" href="/track/{{ item.watch_id }}">
+            {% if item.cover %}
+              <img loading="lazy" src="/cover/{{ item.watch_id }}">
+            {% endif %}
+            <span class="label">{{ item.artist }} — {{ item.title }}</span>
+          </a>
+        {% else %}
+          <p>No music found.</p>
+        {% endfor %}
+      </div>
+      
+
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

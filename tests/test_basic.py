@@ -29,7 +29,7 @@ def test_cli_help():
 
 def test_check_dependencies(capsys):
     """Test that check_dependencies prints errors and exits if binaries are missing."""
-    with patch("shutil.which", return_value=None):
+    with patch("ealt.utils.which", return_value=None):
         with pytest.raises(SystemExit) as excinfo:
             utils.check_dependencies()
 

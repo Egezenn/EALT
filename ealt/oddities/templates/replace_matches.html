@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Replacements{% endblock %}
+
+{% block style %}
+  :root {
+    --bg: #fff;
+    --text: #000;
+    --border: #222;
+    --btn-bg: #eee;
+    --btn-hover: #ddd;
+    --muted: #555;
+    --err: #a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --text: #e0e0e0;
+      --border: #555;
+      --btn-bg: #2d2d2d;
+      --btn-hover: #3d3d3d;
+      --muted: #888;
+      --err: #f28b82;
+    }
+  }
+  body { font-family: sans-serif; font-size: 22px; max-width: 900px; margin: 40px auto; padding: 0 20px; background: var(--bg); color: var(--text); }
+  h1 { font-size: 44px; }
+  .match { display: flex; align-items: center; gap: 16px; border: 3px solid var(--border); padding: 16px; margin-bottom: 16px; }
+  .btn { display: inline-block; font-size: 22px; font-weight: bold; padding: 14px 28px; margin: 4px 8px 4px 0;
+         border: 3px solid var(--border); background: var(--btn-bg); color: var(--text); text-decoration: none; cursor: pointer; }
+  .btn:hover { background: var(--btn-hover); }
+  .muted { color: var(--muted); }
+  .err { color: var(--err); }
+{% endblock %}
+
+{% block content %}
+  <h1>Replacements for {{ artist }} - {{ title }}</h1>
+  <p><strong>Watch ID:</strong> {{ watch_id }}</p>
+  <p><strong>Reason:</strong> {{ reason }}</p>
+  <a class="btn" href="/">Back</a>
+
+  {% if search_error %}
+    <p class="err">Search failed: {{ search_error }}</p>
+  {% else %}
+    {% for match in matches %}
+      <div class="match">
+        {% if match.thumb_url %}
+          <img src="/thumb?url={{ match.thumb_url|urlencode }}" width="120" height="120">
+        {% endif %}
+        <div>
+          <strong>{{ match.title }}</strong> — {{ match.artists }}
+          <br><span class="muted">{{ match.album }} · {{ match.duration }}</span>
+          <br><span class="muted">{{ match.video_id }}</span>
+        </div>
+        <a class="btn" href="/preview/{{ match.video_id }}?title={{ match.title|urlencode }}&artists={{ match.artists|urlencode }}&album={{ match.album|urlencode }}&duration={{ match.duration|urlencode }}&thumb={{ match.thumb_url|urlencode }}">Preview</a>
+        <a class="btn" href="/do_replace?watch_id={{ watch_id }}&video={{ match.video_id }}">Replace</a>
+      </div>
+    {% else %}
+      <p>No matches found.</p>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

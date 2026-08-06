@@ -1,38 +1,34 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools_scm>=8.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "ealt"
-dynamic = ["version"]
+version = "0.0.1"
 description = "Ege's Audio Library Thing - Your offline music library with YouTube as its backend!"
-readme = "readme.md"
+readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "mutagen>=1.47.0",
     "requests>=2.32.5",
     "ytmusicapi>=1.11.3",
     "typer>=0.12",
+    "jinja2>=3.1.5",
 ]
 
 [project.scripts]
 ealt = "ealt.__main__:cli"
 
 [dependency-groups]
-dev = [
-    "ruff>=0.14.8",
-    "pytest>=9.0.1",
-    "pyinstaller>=6.11.1",
-    "setuptools_scm>=8.0",
-]
+dev = ["ruff>=0.14.8", "pytest>=9.0.1", "pyinstaller>=6.11.1"]
 
-[tool.setuptools_scm]
-version_file = "ealt/_version.py"
+[tool.hatch.build.targets.wheel]
+packages = ["ealt"]
+
+[tool.uv]
+default-groups = []
 
 [tool.ruff]
 line-length = 120
 [tool.black]
 line-length = 120
-
-[tool.setuptools.packages.find]
-include = ["ealt*"]

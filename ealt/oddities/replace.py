@@ -9,9 +9,10 @@ import requests
 from ytmusicapi import YTMusic
 
 from .. import const, utils
-from .shared import UIHandler, page, run_server
+from .shared import UIHandler, render_template, run_server
 
 logger = logging.getLogger(__name__)
+
 
 _lock = threading.Lock()
 
@@ -36,19 +37,6 @@ def _log_action(message: str) -> None:
 
 
 _THUMB_RE = re.compile(r"=w\d+-h\d+")
-
-STYLE = """
-  body { font-family: sans-serif; font-size: 22px; max-width: 900px; margin: 40px auto; padding: 0 20px; }
-  h1 { font-size: 44px; }
-  h2 { font-size: 34px; }
-  .card { border: 3px solid #222; padding: 24px; margin-bottom: 24px; }
-  .match { display: flex; align-items: center; gap: 16px; border: 3px solid #222; padding: 16px; margin-bottom: 16px; }
-  .btn { display: inline-block; font-size: 22px; font-weight: bold; padding: 14px 28px; margin: 4px 8px 4px 0;
-         border: 3px solid #222; background: #eee; color: #000; text-decoration: none; cursor: pointer; }
-  .btn:hover { background: #ddd; }
-  .muted { color: #555; }
-  .err { color: #a00; }
-"""
 
 
 def _load_errors() -> dict:
@@ -94,10 +82,6 @@ def _fetch_thumbnail(url: str) -> tuple[str, bytes] | None:
         return None
 
 
-def _page(title: str, body: str, status: int = 200) -> tuple[str, int]:
-    return page(title, body, status, STYLE)
-
-
 def _render_index() -> tuple[str, int]:
     errors = _load_errors()
     library = utils.read_json(const.LIBRARY_FILE)
@@ -108,21 +92,8 @@ def _render_index() -> tuple[str, int]:
         meta = library.get(watch_id, {})
         artist = meta.get("artist", "Unknown")
         title = meta.get("title", "Unknown")
-        cards.append(f"""
-            <div class="card">
-              <h2>{html.escape(artist)} - {html.escape(title)}</h2>
-              <p><strong>Watch ID:</strong> {html.escape(watch_id)}</p>
-              <p><strong>Reason:</strong> {html.escape(_reason(entry))}</p>
-              <a class="btn" href="/replace/{watch_id}">Look for replacements</a>
-              <a class="btn" href="/ignore?watch_id={watch_id}">Ignore</a>
-              <a class="btn" href="/delete?watch_id={watch_id}">Delete entry</a>
-            </div>
-            """)
-    if cards:
-        body = f"<h1>Fix errors ({len(cards)})</h1>{''.join(cards)}"
-    else:
-        body = "<h1>Fix errors</h1><p>Nothing to fix!</p>"
-    return _page("Fix errors", body)
+        cards.append({"artist": artist, "title": title, "watch_id": watch_id, "reason": _reason(entry)})
+    return render_template("replace_index.html", cards=cards)
 
 
 def _render_replacements(watch_id: str) -> tuple[str, int]:
@@ -132,6 +103,7 @@ def _render_replacements(watch_id: str) -> tuple[str, int]:
     title = meta.get("title", "")
     query = f"{artist} {title}".strip() or watch_id
     matches = []
+    search_error = None
     try:
         results = YTMusic().search(query, filter="songs", limit=10)
         for r in results:
@@ -139,41 +111,27 @@ def _render_replacements(watch_id: str) -> tuple[str, int]:
             album = (r.get("album") or {}).get("name", "")
             video_id = r.get("videoId", "")
             thumb_url = _thumbnail_url(r.get("thumbnails", []))
-            if thumb_url:
-                img = f'<img src="/thumb?url={quote(thumb_url, safe="")}" width="120" height="120">'
-            else:
-                img = ""
-            preview_params = (
-                f"title={quote(r.get('title', ''), safe='')}"
-                f"&artists={quote(artists, safe='')}"
-                f"&album={quote(album, safe='')}"
-                f"&duration={quote(r.get('duration', ''), safe='')}"
-                f"&thumb={quote(thumb_url, safe='')}"
+            matches.append(
+                {
+                    "title": r.get("title", ""),
+                    "artists": artists,
+                    "album": album,
+                    "duration": r.get("duration", ""),
+                    "video_id": video_id,
+                    "thumb_url": thumb_url,
+                }
             )
-            matches.append(f"""
-                <div class="match">
-                  {img}
-                  <div>
-                    <strong>{html.escape(r.get("title", ""))}</strong> — {html.escape(artists)}
-                    <br><span class="muted">{html.escape(album)} · {html.escape(r.get("duration", ""))}</span>
-                    <br><span class="muted">{html.escape(video_id)}</span>
-                  </div>
-                  <a class="btn" href="/preview/{html.escape(video_id)}?{preview_params}">Preview</a>
-                  <a class="btn" href="/do_replace?watch_id={html.escape(watch_id)}&video={html.escape(video_id)}">Replace</a>
-                </div>
-                """)
     except Exception as e:
-        matches.append(f'<p class="err">Search failed: {html.escape(str(e))}</p>')
-    if not matches:
-        matches.append("<p>No matches found.</p>")
-    body = (
-        f"<h1>Replacements for {html.escape(artist)} - {html.escape(title)}</h1>"
-        f"<p><strong>Watch ID:</strong> {html.escape(watch_id)}</p>"
-        f"<p><strong>Reason:</strong> {html.escape(_reason(errors.get(watch_id)))}</p>"
-        f'<a class="btn" href="/">Back</a>'
-        f"{''.join(matches)}"
+        search_error = str(e)
+    return render_template(
+        "replace_matches.html",
+        artist=artist,
+        title=title,
+        watch_id=watch_id,
+        reason=_reason(errors.get(watch_id)),
+        matches=matches,
+        search_error=search_error,
     )
-    return _page("Replacements", body)
 
 
 def _stream_preview(video_id: str, seconds: int = 10) -> bytes:
@@ -227,27 +185,15 @@ def _render_preview(video_id: str, query: dict) -> tuple[str, int]:
     album = query.get("album", [""])[0]
     duration = query.get("duration", [""])[0]
     thumb = query.get("thumb", [""])[0]
-    if thumb:
-        img = f'<img src="/thumb?url={quote(thumb, safe="")}" width="120" height="120">'
-    else:
-        img = ""
-    card = f"""
-        <div class="match">
-          {img}
-          <div>
-            <strong>{html.escape(title)}</strong> — {html.escape(artists)}
-            <br><span class="muted">{html.escape(album)} · {html.escape(duration)}</span>
-            <br><span class="muted">{html.escape(video_id)}</span>
-          </div>
-        </div>
-        """
-    body = (
-        "<h1>Preview</h1>"
-        f"{card}"
-        f'<audio autoplay controls src="/stream/{html.escape(video_id)}"></audio>'
-        f'<br><br><a class="btn" href="javascript:history.back()">Back</a>'
+    return render_template(
+        "replace_preview.html",
+        video_id=video_id,
+        title=title,
+        artists=artists,
+        album=album,
+        duration=duration,
+        thumb=thumb,
     )
-    return _page("Preview", body)
 
 
 def _ignore(watch_id: str) -> None:
@@ -287,9 +233,7 @@ def _do_replace(watch_id: str, video_id: str) -> None:
         _log_action(f"Replaced {watch_id} with {video_id}")
 
 
-class FixHandler(UIHandler):
-    STYLE = STYLE
-
+class ReplaceHandler(UIHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -315,10 +259,16 @@ class FixHandler(UIHandler):
                 _do_replace(query.get("watch_id", [""])[0], query.get("video", [""])[0])
                 self._redirect("/")
             else:
-                self._respond(_page("Not found", "<h1>404</h1>", status=404))
+                self._respond(
+                    render_template("base.html", title="Not found", content="<h1>404 Not Found</h1>", status=404)
+                )
         except Exception as e:
-            logger.exception("Fix request failed")
-            self._respond(_page("Error", f"<h1>Error</h1><p>{html.escape(str(e))}</p>", status=500))
+            logger.exception("Replace request failed")
+            self._respond(
+                render_template(
+                    "base.html", title="Error", content=f"<h1>Error</h1><p>{html.escape(str(e))}</p>", status=500
+                )
+            )
 
     def _send_audio(self, video_id: str):
         try:
@@ -339,5 +289,5 @@ class FixHandler(UIHandler):
 
 
 def run() -> None:
-    """Starts the fix web UI and blocks until interrupted."""
-    run_server(FixHandler, "fix")
+    """Starts the replace web UI and blocks until interrupted."""
+    run_server(ReplaceHandler, "replace")
