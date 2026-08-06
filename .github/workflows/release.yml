@@ -31,8 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync
-          uv pip install pyinstaller
+          uv sync --group dev
 
       - name: Build executable (Windows)
         if: matrix.os == 'windows-latest'
