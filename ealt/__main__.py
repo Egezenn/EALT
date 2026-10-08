@@ -20,8 +20,9 @@ except ImportError, PackageNotFoundError:
 
 
 cli = typer.Typer(
-    context_settings=dict(help_option_names=["-h", "--help"]),
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
+
 
 
 @cli.callback(no_args_is_help=True, invoke_without_command=True)
@@ -71,7 +72,29 @@ def run(
     square_crop: Annotated[
         bool, typer.Option("--square-crop/--no-square-crop", help="Enforce 1:1 square crop on cover art.")
     ] = True,
+    fix_unavailable: Annotated[
+        bool,
+        typer.Option(
+            "--fix-unavailable",
+            help="Fix unavailable tracks by searching YouTube Music for 100% match on artist and title.",
+        ),
+    ] = False,
+    remote_components: Annotated[
+        bool,
+        typer.Option(
+            "--remote-components/--no-remote-components",
+            help="Enable downloading remote challenge solver components in yt-dlp (ejs:github).",
+        ),
+    ] = True,
+    cookies: Annotated[
+        bool,
+        typer.Option(
+            "--cookies",
+            help="Use cookies from data/cookies.txt.",
+        ),
+    ] = False,
 ) -> None:
+
     """Process the entire library."""
     parsed_download_extras = utils.parse_extras(download_extras)
     parsed_embed_extras = utils.parse_extras(embed_extras)
@@ -129,6 +152,7 @@ def run(
         "total": total,
         "album_tags": album_tags,
         "square_crop": square_crop,
+        "fix_unavailable": fix_unavailable,
     }
 
     worker_queue = queue.Queue()
@@ -137,7 +161,11 @@ def run(
 
     const.DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-    dl = downloader.Downloader(download_extras=parsed_download_extras)
+    dl = downloader.Downloader(
+        download_extras=parsed_download_extras,
+        remote_components=remote_components,
+        cookies=cookies,
+    )
     cv = converter.Converter()
     tg = tagger.Tagger()
 
@@ -152,9 +180,14 @@ def run(
         try:
             for future in concurrent.futures.as_completed(futures):
                 try:
-                    watch_id, updated_meta, success = future.result()
+                    res = future.result()
+                    watch_id, updated_meta, _ = res[0], res[1], res[2]
+                    replaced_from = res[3] if len(res) > 3 else None
 
-                    if updated_meta:
+
+                    if replaced_from:
+                        library_obj.replace(replaced_from, watch_id, updated_meta or {}, save_to_disk=False)
+                    elif updated_meta:
                         library_obj.update(watch_id, updated_meta, save_to_disk=False)
 
                     count += 1
@@ -164,6 +197,7 @@ def run(
                 except Exception as e:
                     logger.error(f"Worker failed: {e}")
 
+
         except KeyboardInterrupt:
             logger.info("Interrupted, shutting down workers...")
             executor.shutdown(wait=False, cancel_futures=True)
@@ -171,7 +205,9 @@ def run(
 
     # Final save
     library_obj.save()
+    downloader.cleanup_resolved_errors()
     logger.info("Done.")
+
 
 
 @cli.command()
@@ -180,12 +216,33 @@ def download(
     download_extras: Annotated[
         str, typer.Option("--download-extras", help="Comma-separated extras to download.")
     ] = "cover,lyric",
+    remote_components: Annotated[
+        bool,
+        typer.Option(
+            "--remote-components/--no-remote-components",
+            help="Enable downloading remote challenge solver components in yt-dlp (ejs:github).",
+        ),
+    ] = True,
+    cookies: Annotated[
+        bool,
+        typer.Option(
+            "--cookies",
+            help="Use cookies from data/cookies.txt.",
+        ),
+    ] = False,
 ) -> None:
+
     """Download a single video by Watch ID."""
     extras = utils.parse_extras(download_extras)
     const.DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-    dl = downloader.Downloader(download_extras=extras)
+    dl = downloader.Downloader(
+        download_extras=extras,
+        remote_components=remote_components,
+        cookies=cookies,
+    )
+
+
     if dl.download(watch_id):
         logger.info(f"Downloaded {watch_id}")
     else:
@@ -289,10 +346,10 @@ def tag(
                 current_meta["title"] = final_title
                 updates_made = True
 
-            if fetched.get("album"):
-                if tag_album and "album" not in current_meta:
-                    current_meta["album"] = fetched["album"]
-                    updates_made = True
+            if fetched.get("album") and tag_album and "album" not in current_meta:
+                current_meta["album"] = fetched["album"]
+                updates_made = True
+
         else:
             logger.warning(f"Could not fetch metadata for {watch_id}")
 

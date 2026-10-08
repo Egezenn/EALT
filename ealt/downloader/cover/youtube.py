@@ -1,10 +1,11 @@
 import logging
 import subprocess
+from pathlib import Path
 
 import requests
 from ytmusicapi import YTMusic
 
-from ... import const
+from ... import const, utils
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +14,14 @@ HEADERS = {
 }
 
 
-def download(watch_id: str) -> bool:
+def download(
+    watch_id: str,
+    remote_components: bool = True,
+    cookies: bool | Path | str | None = False,
+) -> bool:
+
     """Try to download cover art cascading from best to worst methods."""
+
     # 1. Try YouTube Music API (highest quality / square aspect ratio)
     try:
         ytmusic = YTMusic()
@@ -73,7 +80,7 @@ def download(watch_id: str) -> bool:
         return True
 
     # 5. Try via yt-dlp --write-thumbnail as ultimate fallback
-    if _download_via_ytdlp(watch_id):
+    if _download_via_ytdlp(watch_id, remote_components=remote_components, cookies=cookies):
         return True
 
     logger.warning(f"Failed to download cover for {watch_id} from all sources")
@@ -105,7 +112,12 @@ def _download_via_oembed(watch_id: str) -> bool:
     return False
 
 
-def _download_via_ytdlp(watch_id: str) -> bool:
+def _download_via_ytdlp(
+    watch_id: str,
+    remote_components: bool = True,
+    cookies: bool | Path | str | None = False,
+) -> bool:
+
     try:
         cmd = [
             "yt-dlp",
@@ -113,9 +125,15 @@ def _download_via_ytdlp(watch_id: str) -> bool:
             "--skip-download",
             "--output",
             str(const.DOWNLOADS_DIR / watch_id),
-            f"https://www.youtube.com/watch?v={watch_id}",
         ]
+        if remote_components:
+            cmd.extend(["--remote-components", "ejs:github"])
+        resolved_cookies = utils.resolve_cookies(cookies)
+        if resolved_cookies:
+            cmd.extend(["--cookies", str(resolved_cookies)])
+        cmd.append(f"https://www.youtube.com/watch?v={watch_id}")
         result = subprocess.run(cmd, capture_output=True, text=True)
+
         if result.returncode == 0:
             for ext in [".jpg", ".jpeg", ".webp", ".png"]:
                 path = const.DOWNLOADS_DIR / f"{watch_id}{ext}"
@@ -127,3 +145,4 @@ def _download_via_ytdlp(watch_id: str) -> bool:
     except Exception as e:
         logger.debug(f"yt-dlp thumbnail download failed: {e}")
     return False
+

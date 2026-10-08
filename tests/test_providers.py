@@ -1,4 +1,3 @@
-from pathlib import Path
 
 from ealt import const, metadata
 from ealt.downloader import cover, lyrics
@@ -52,3 +51,52 @@ def test_lyrics_youtube_download(tmp_path):
     assert lrc_path.exists()
     lyrics_text = lrc_path.read_text(encoding="utf-8")
     assert "Never gonna give you up" in lyrics_text or "Never Gonna Give You Up" in lyrics_text
+
+
+def test_search_exact_match():
+    # Live search test for 100% match
+    result = metadata.search_exact_match(ARTIST, TITLE)
+    assert result is not None
+    assert isinstance(result, str)
+
+
+def test_search_exact_match_mocked(monkeypatch):
+    class MockYTMusic:
+        def search(self, query, filter=None, limit=None):
+            return [
+                {
+                    "videoId": "wrong_title",
+                    "title": "Never Gonna Give You Up (Remix)",
+                    "artists": [{"name": "Rick Astley"}],
+                },
+                {
+                    "videoId": "wrong_artist",
+                    "title": "Never Gonna Give You Up",
+                    "artists": [{"name": "Rick Roll"}],
+                },
+                {
+                    "videoId": "excluded_id",
+                    "title": "Never Gonna Give You Up",
+                    "artists": [{"name": "Rick Astley"}],
+                },
+                {
+                    "videoId": "matched_id",
+                    "title": "Never Gonna Give You Up",
+                    "artists": [{"name": "Rick Astley"}],
+                },
+            ]
+
+    monkeypatch.setattr("ealt.metadata.youtube.YTMusic", MockYTMusic)
+
+    # With exclude_id="excluded_id", it should skip "excluded_id" and pick "matched_id"
+    res = metadata.search_exact_match("Rick Astley", "Never Gonna Give You Up", exclude_id="excluded_id")
+    assert res == "matched_id"
+
+    # Case insensitivity and whitespace stripping test
+    res = metadata.search_exact_match("  rick astley  ", "  never gonna give you up  ", exclude_id="excluded_id")
+    assert res == "matched_id"
+
+    # No 100% match found
+    res = metadata.search_exact_match("Unknown Artist", "Never Gonna Give You Up")
+    assert res is None
+

@@ -33,12 +33,12 @@ Duct taped python + yt-dlp + ffmpeg + magick + json = audio library pipeline
 
 ### Binaries
 
-| Package                                    | Usage                                      | License   |
-| ------------------------------------------ | ------------------------------------------ | --------- |
-| [Python ~=3.12](https://www.python.org)    | Core language                              | PSFL      |
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Downloading files off of YouTube           | Unlicense |
-| [FFmpeg](https://ffmpeg.org)               | Required for the conversion of audio files | LGPLv2.1  |
-| [ImageMagick](https://imagemagick.org)     | Required for the conversion of image files | Custom    |
+| Package                                    | Usage                            | License   |
+| ------------------------------------------ | -------------------------------- | --------- |
+| [Python ~=3.12](https://www.python.org)    | Core language                    | PSFL      |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Downloading files off of YouTube | Unlicense |
+| [FFmpeg](https://ffmpeg.org)               | Audio conversion                 | LGPLv2.1  |
+| [ImageMagick](https://imagemagick.org)     | Image conversion                 | Custom    |
 
 ### Python packages
 

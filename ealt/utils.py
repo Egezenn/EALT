@@ -6,7 +6,7 @@ import sys
 import threading
 from logging import Handler
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from . import const
 
@@ -30,6 +30,13 @@ def set_config_file(config_file: Path) -> None:
         if not path.is_absolute():
             path = _active_config_file.parent / path
         const.LIBRARY_FILE = path
+    cookies = config.get("cookies")
+    if cookies:
+        path = Path(cookies).expanduser()
+        if not path.is_absolute():
+            path = _active_config_file.parent / path
+        const.COOKIES_FILE = path
+
 
 
 def get_config() -> dict[str, Any]:
@@ -132,7 +139,7 @@ def check_dependencies():
         sys.exit(1)
 
 
-def read_json(path: Path) -> Dict[str, Any]:
+def read_json(path: Path) -> dict[str, Any]:
     """Reads a JSON file and returns a dictionary."""
     if not path.exists():
         return {}
@@ -143,7 +150,7 @@ def read_json(path: Path) -> Dict[str, Any]:
         return {}
 
 
-def write_json(path: Path, data: Dict[str, Any]):
+def write_json(path: Path, data: dict[str, Any]):
     """Writes a dictionary to a JSON file."""
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -159,3 +166,23 @@ def parse_extras(extras_str: str) -> list[str]:
     if not extras_str:
         return []
     return [x.strip() for x in extras_str.split(",") if x.strip()]
+
+
+def resolve_cookies(cookies: bool | Path | str | None = False) -> Path | None:
+    """Resolves cookies file path from argument or checks const.COOKIES_FILE if cookies is True."""
+    logger = logging.getLogger(__name__)
+    if isinstance(cookies, (str, Path)):
+        p = Path(cookies).expanduser()
+        if p.exists():
+            return p
+        logger.warning(f"Specified cookies file does not exist: {cookies}")
+        return None
+    if not cookies:
+        return None
+    if const.COOKIES_FILE.exists():
+        return const.COOKIES_FILE
+    logger.warning(f"Cookies flag enabled but {const.COOKIES_FILE} does not exist.")
+    return None
+
+
+

@@ -25,7 +25,7 @@ def download(watch_id: str, lrc_path: Path) -> bool:
 
         lyrics_text = lyrics_data["lyrics"]
 
-        if "syncedLyrics" in lyrics_data and lyrics_data["syncedLyrics"]:
+        if lyrics_data.get("syncedLyrics"):
             lrc_path.write_text(lyrics_data["syncedLyrics"], encoding="utf-8")
             logger.info(f"Downloaded synced lyrics for {watch_id} from YouTube (.lrc)")
             return True

@@ -1,7 +1,6 @@
 import base64
 import logging
 from pathlib import Path
-from typing import Optional
 
 from mutagen.flac import Picture
 from mutagen.oggopus import OggOpus
@@ -11,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 def tag(
     audio_path: Path,
-    cover_path: Optional[Path],
+    cover_path: Path | None,
     artist: str,
     title: str,
-    album: Optional[str] = None,
-    desc: Optional[str] = None,
-    lyrics_file: Optional[Path] = None,
+    album: str | None = None,
+    desc: str | None = None,
+    lyrics_file: Path | None = None,
     embed_extras: list = None,
 ):
     audio = OggOpus(audio_path)

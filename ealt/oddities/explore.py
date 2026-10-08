@@ -2,10 +2,10 @@ import html
 import logging
 import re
 from pathlib import Path
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from .. import const, utils
-from .shared import UIHandler, page, render_template, run_server
+from .shared import UIHandler, render_template, run_server
 
 logger = logging.getLogger(__name__)
 

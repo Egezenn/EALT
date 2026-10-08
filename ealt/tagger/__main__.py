@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from .. import const
 from . import mp3, opus
@@ -13,8 +12,8 @@ class Tagger:
         watch_id: str,
         artist: str,
         title: str,
-        album: Optional[str] = None,
-        desc: Optional[str] = None,
+        album: str | None = None,
+        desc: str | None = None,
         delete_embeds: bool = False,
         embed_extras: list = None,
     ) -> bool:

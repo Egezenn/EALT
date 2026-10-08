@@ -1,10 +1,26 @@
+from pathlib import Path
+from typing import Annotated, Optional
+
 import typer
 
 from . import editor as editor_module
 from . import explore as explore_module
+from . import metrolist as metrolist_module
 from . import replace as replace_module
 
 cli = typer.Typer()
+
+
+@cli.command(name="import-metrolist")
+def import_metrolist(
+    file: Annotated[
+        Path | None,
+        typer.Option("--file", "-f", help="Path to Metrolist backup file (defaults to highest timestamp in data directory)."),
+    ] = None,
+) -> None:
+    """Import liked songs from a Metrolist backup file if they don't already exist."""
+    metrolist_module.run(backup_file=file)
+
 
 
 @cli.command()

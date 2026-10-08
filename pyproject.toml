@@ -30,5 +30,20 @@ default-groups = []
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
+ignore = [
+    "BLE001",
+    "S110",
+    "S112",
+    "PLW1510",
+    "SIM115",
+    "RUF013",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
 [tool.black]
 line-length = 120
+

@@ -91,9 +91,7 @@ class UIHandler(BaseHTTPRequestHandler):
 
 def run_server(handler_cls: type[BaseHTTPRequestHandler], label: str) -> None:
     """Starts a local web server for an oddities UI and runs it in the background."""
-    import os
     import subprocess
-    import sys
     import time
 
     from .. import const

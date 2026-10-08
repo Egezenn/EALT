@@ -1,7 +1,4 @@
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from ealt import const
 from ealt.converter import Converter

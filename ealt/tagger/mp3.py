@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from typing import Optional
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import APIC, COMM, ID3, USLT, ID3NoHeaderError
@@ -10,12 +9,12 @@ logger = logging.getLogger(__name__)
 
 def tag(
     audio_path: Path,
-    cover_path: Optional[Path],
+    cover_path: Path | None,
     artist: str,
     title: str,
-    album: Optional[str] = None,
-    desc: Optional[str] = None,
-    lyrics_file: Optional[Path] = None,
+    album: str | None = None,
+    desc: str | None = None,
+    lyrics_file: Path | None = None,
     embed_extras: list = None,
 ):
     try:

@@ -4,7 +4,8 @@ import logging
 import subprocess
 import threading
 import time
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any
 
 from .. import const, metadata, utils
 from . import cover, lyrics
@@ -34,11 +35,53 @@ def record_download_error(watch_id: str, reason: str):
         utils.write_json(const.ERRORS_FILE, errors)
 
 
-class Downloader:
-    def __init__(self, download_extras: list = None):
-        self.download_extras = download_extras or []
+def remove_download_error(watch_id: str):
+    """Removes a download failure entry from errors.json."""
+    with _errors_lock:
+        errors = utils.read_json(const.ERRORS_FILE)
+        if watch_id in errors:
+            del errors[watch_id]
+            utils.write_json(const.ERRORS_FILE, errors)
 
-    def fetch_metadata(self, watch_id: str) -> Optional[Dict[str, str]]:
+
+def cleanup_resolved_errors() -> int:
+    """Removes entries from errors.json if their corresponding audio file exists."""
+    with _errors_lock:
+        errors = utils.read_json(const.ERRORS_FILE)
+        if not errors:
+            return 0
+
+        to_remove = [
+            watch_id
+            for watch_id in errors
+            if any((const.DOWNLOADS_DIR / f"{watch_id}{ext}").exists() for ext in const.AUDIO_EXTENSIONS)
+        ]
+
+        if to_remove:
+            for wid in to_remove:
+                del errors[wid]
+            utils.write_json(const.ERRORS_FILE, errors)
+            logger.info(f"Cleaned up {len(to_remove)} resolved entries from {const.ERRORS_FILE}")
+            return len(to_remove)
+
+        return 0
+
+
+
+
+class Downloader:
+    def __init__(
+        self,
+        download_extras: list = None,
+        remote_components: bool = True,
+        cookies: bool | Path | str | None = False,
+    ):
+        self.download_extras = download_extras or []
+        self.remote_components = remote_components
+        self.cookies = utils.resolve_cookies(cookies)
+
+
+    def fetch_metadata(self, watch_id: str) -> dict[str, str] | None:
         """
         Fetches metadata (artist, title, album) from YouTube Music.
         """
@@ -47,9 +90,9 @@ class Downloader:
     def download(
         self,
         watch_id: str,
-        artist: Optional[str] = None,
-        title: Optional[str] = None,
-        existing_meta: Optional[Dict[str, Any]] = None,
+        artist: str | None = None,
+        title: str | None = None,
+        existing_meta: dict[str, Any] | None = None,
     ) -> bool:
         """
         Downloads audio and cover art for a given watch_id.
@@ -76,8 +119,12 @@ class Downloader:
                 output_template,
                 "--quiet",
                 "--ignore-errors",
-                url,
             ]
+            if self.remote_components:
+                cmd.extend(["--remote-components", "ejs:github"])
+            if self.cookies:
+                cmd.extend(["--cookies", str(self.cookies)])
+            cmd.append(url)
 
             try:
                 result = subprocess.run(cmd, capture_output=True, text=True)
@@ -100,17 +147,23 @@ class Downloader:
             if has_cover:
                 logger.info(f"Skipping cover art download for {watch_id} (already exists)")
             else:
-                cover.youtube.download(watch_id)
+                cover.youtube.download(
+                    watch_id,
+                    remote_components=self.remote_components,
+                    cookies=self.cookies,
+                )
+
 
         if "lyric" in self.download_extras:
             if artist and title:
+
                 self._download_lyrics(watch_id, artist, title)
             else:
                 logger.info(f"Skipping lyrics download for {watch_id} (missing artist and/or title metadata)")
 
         return True
 
-    def _download_lyrics(self, watch_id: str, artist: Optional[str] = None, title: Optional[str] = None) -> bool:
+    def _download_lyrics(self, watch_id: str, artist: str | None = None, title: str | None = None) -> bool:
         """
         Downloads lyrics for a given watch_id.
         Tries multiple sources in order: lrclib -> kugou -> YouTube Music.

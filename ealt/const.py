@@ -16,6 +16,8 @@ LOG_DIR = DATA_DIR / "logs"
 LIBRARY_FILE = DATA_DIR / "library.json"
 ERRORS_FILE = DATA_DIR / "errors.json"
 CONFIG_FILE = DATA_DIR / "config.json"
+COOKIES_FILE = DATA_DIR / "cookies.txt"
+
 
 AUDIO_EXTENSIONS = [".opus", ".webm", ".m4a", ".mp3"]
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"]

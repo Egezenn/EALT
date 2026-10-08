@@ -3,7 +3,7 @@ import logging
 import re
 import subprocess
 import threading
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, urlparse
 
 import requests
 from ytmusicapi import YTMusic
@@ -136,19 +136,29 @@ def _render_replacements(watch_id: str) -> tuple[str, int]:
 
 def _stream_preview(video_id: str, seconds: int = 10) -> bytes:
     """Returns the first `seconds` of audio as a webm blob via yt-dlp + ffmpeg."""
+    cmd = [
+        "yt-dlp",
+        "-g",
+        "-f",
+        "bestaudio/best",
+        "--remote-components",
+        "ejs:github",
+    ]
+    cookies = utils.resolve_cookies()
+    if cookies:
+        cmd.extend(["--cookies", str(cookies)])
+    cmd.extend([
+        "--quiet",
+        f"https://www.youtube.com/watch?v={video_id}",
+    ])
     url_result = subprocess.run(
-        [
-            "yt-dlp",
-            "-g",
-            "-f",
-            "bestaudio/best",
-            "--quiet",
-            f"https://www.youtube.com/watch?v={video_id}",
-        ],
+        cmd,
         capture_output=True,
         text=True,
         check=False,
     )
+
+
     if url_result.returncode != 0:
         raise RuntimeError(f"yt-dlp failed: {url_result.stderr.strip()}")
     stream_url = url_result.stdout.strip().splitlines()[-1]
